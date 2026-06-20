@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, sumByCurrency, formatTotals } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { isOverdue, daysOverdue } from "@/lib/invoice";
 import { btn, Card, PageHeader, Stat, StageBadge, EmptyState } from "@/components/ui";
@@ -25,17 +25,21 @@ export default async function DashboardPage() {
 
   const cur = user.currency;
   const activeDeals = deals.filter((d) => d.stage !== "Lost");
-  const pipelineValue = activeDeals
-    .filter((d) => d.stage !== "Paid")
-    .reduce((s, d) => s + d.amount, 0);
-  const paidTotal = invoices
-    .filter((i) => i.status === "Paid")
-    .reduce((s, i) => s + i.amount, 0);
-  const outstanding = invoices
-    .filter((i) => i.status !== "Paid")
-    .reduce((s, i) => s + i.amount, 0);
+  // Totals are grouped by currency so mixed-currency accounts stay accurate.
+  const pipelineValue = formatTotals(
+    sumByCurrency(activeDeals.filter((d) => d.stage !== "Paid")),
+    cur,
+  );
+  const paidTotal = formatTotals(
+    sumByCurrency(invoices.filter((i) => i.status === "Paid")),
+    cur,
+  );
+  const outstanding = formatTotals(
+    sumByCurrency(invoices.filter((i) => i.status !== "Paid")),
+    cur,
+  );
   const overdueInvoices = invoices.filter(isOverdue);
-  const overdueTotal = overdueInvoices.reduce((s, i) => s + i.amount, 0);
+  const overdueTotal = formatTotals(sumByCurrency(overdueInvoices), cur);
 
   const recentDeals = [...deals]
     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
@@ -54,13 +58,13 @@ export default async function DashboardPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat label="Pipeline value" value={formatMoney(pipelineValue, cur)} sub={`${activeDeals.length} active deals`} />
-        <Stat label="Paid" value={formatMoney(paidTotal, cur)} tone="good" sub="Collected to date" />
-        <Stat label="Outstanding" value={formatMoney(outstanding, cur)} tone="warn" sub="Invoiced, awaiting payment" />
+        <Stat label="Pipeline value" value={pipelineValue} sub={`${activeDeals.length} active deals`} />
+        <Stat label="Paid" value={paidTotal} tone="good" sub="Collected to date" />
+        <Stat label="Outstanding" value={outstanding} tone="warn" sub="Invoiced, awaiting payment" />
         <Stat
           label="Overdue"
-          value={formatMoney(overdueTotal, cur)}
-          tone={overdueTotal > 0 ? "bad" : "default"}
+          value={overdueTotal}
+          tone={overdueInvoices.length > 0 ? "bad" : "default"}
           sub={`${overdueInvoices.length} invoice${overdueInvoices.length === 1 ? "" : "s"}`}
         />
       </div>

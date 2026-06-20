@@ -7,6 +7,7 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: "📊" },
   { href: "/deals", label: "Deals", icon: "🤝" },
   { href: "/invoices", label: "Invoices", icon: "🧾" },
+  { href: "/insights", label: "Insights", icon: "📈" },
   { href: "/media-kit", label: "Media Kit", icon: "✨" },
   { href: "/settings", label: "Settings", icon: "⚙️" },
 ];

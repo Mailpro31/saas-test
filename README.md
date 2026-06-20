@@ -25,14 +25,17 @@ creator a beautiful, shareable **media kit / rate card** at their own URL.
 - **One-click invoices** — generate a clean, printable (Save-as-PDF) invoice from
   any deal, with your payment details baked in.
 - **Automated payment-chasing** — draft a 4-step escalation sequence (friendly →
-  firm → final notice **with late fee**). Copy to send, or mark as sent.
+  firm → final notice **with late fee**). Copy to send, **email it directly**, or
+  let a **daily cron auto-send** due reminders for you.
 - **AI assistant (optional)** — reminder and brand-reply drafts written by
   **Claude**. Falls back to high-quality built-in templates when no API key is
   set, so the app is fully functional out of the box.
+- **Insights** — revenue over the last 6 months, average days-to-pay, top brands
+  and deals-by-platform, all currency-aware.
 - **Shareable media kit** — a public rate card at `/m/<your-handle>` with your
   audience stats, packages and a contact CTA. A built-in growth/referral loop.
 - **Earnings dashboard** — pipeline value, paid, outstanding and overdue at a
-  glance, with a "needs chasing" panel.
+  glance (grouped by currency), with a "needs chasing" panel.
 
 ## 🧱 Tech stack
 
@@ -96,13 +99,31 @@ SQLite is great for local dev but not for serverless. For production:
 3. Set environment variables on your host:
    - `DATABASE_URL` — your Postgres connection string
    - `AUTH_SECRET` — a long random string
-   - `ANTHROPIC_API_KEY` — optional
+   - `ANTHROPIC_API_KEY` — optional (Claude-powered drafts)
+   - `RESEND_API_KEY`, `EMAIL_FROM` — optional (emailing reminders)
+   - `CRON_SECRET` — required only if you enable the auto-send cron
 4. Run migrations against the database: `npx prisma db push` (the
    `postinstall` hook runs `prisma generate` automatically on deploy).
 5. Deploy. On Vercel, push to the repo and import the project — that's it.
 
-> The app runs fully without `ANTHROPIC_API_KEY`; AI drafting simply falls back
-> to built-in templates.
+> The app runs fully without `ANTHROPIC_API_KEY` / `RESEND_API_KEY`; AI drafting
+> falls back to built-in templates and reminders stay copy-to-send.
+
+### Auto-sending reminders (cron)
+
+`vercel.json` schedules a daily call to `GET /api/cron/reminders`. The endpoint
+emails every drafted reminder whose scheduled date has arrived (for unpaid
+invoices) and marks it sent. It requires:
+
+- `RESEND_API_KEY` (+ `EMAIL_FROM`) so it can actually send, and
+- `CRON_SECRET` — the request must carry `Authorization: Bearer <CRON_SECRET>`.
+  Vercel Cron sends this header automatically when `CRON_SECRET` is set.
+
+You can trigger it manually too:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://your-app/api/cron/reminders
+```
 
 ## 🗂️ Project structure
 

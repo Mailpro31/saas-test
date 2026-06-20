@@ -7,11 +7,13 @@ import { fmtDate } from "@/lib/dates";
 import { parseLineItems, isOverdue, daysOverdue } from "@/lib/invoice";
 import { lateFeeMinor, levelMeta } from "@/lib/reminders";
 import { aiEnabled } from "@/lib/ai";
+import { emailEnabled } from "@/lib/email";
 import { btn, Card, PageHeader } from "@/components/ui";
 import { PrintButton } from "@/components/PrintButton";
 import { CopyButton } from "@/components/CopyButton";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { ReminderGenerator } from "@/components/ReminderGenerator";
+import { SendReminderButton } from "@/components/SendReminderButton";
 import {
   setInvoiceStatusAction,
   deleteInvoiceAction,
@@ -38,6 +40,8 @@ export default async function InvoiceDetailPage({
   if (!invoice) notFound();
 
   const items = parseLineItems(invoice.lineItems);
+  // Whether the "Send email" action can be offered for this invoice's reminders.
+  const canEmail = emailEnabled() && Boolean(invoice.deal.contactEmail);
   const overdue = isOverdue(invoice);
   const overdueDays = daysOverdue(invoice.dueDate);
   // Only apply a late fee while the invoice is genuinely overdue — never on an
@@ -198,6 +202,9 @@ export default async function InvoiceDetailPage({
                       className={btn.ghost}
                       label="Copy"
                     />
+                    {r.status !== "Sent" && canEmail && (
+                      <SendReminderButton reminderId={r.id} />
+                    )}
                     {r.status !== "Sent" && (
                       <form action={markReminderSentAction.bind(null, r.id)}>
                         <button type="submit" className={btn.ghost}>

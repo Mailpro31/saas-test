@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { draftReminder } from "@/lib/ai";
+import { sendEmail } from "@/lib/email";
 import { levelMeta, type ReminderContext } from "@/lib/reminders";
 import { daysOverdue } from "@/lib/invoice";
 import { fmtDate, addDays } from "@/lib/dates";
@@ -87,6 +88,37 @@ export async function generateSequenceAction(invoiceId: string) {
     })),
   });
   revalidatePath(`/invoices/${invoiceId}`);
+}
+
+// Email a drafted reminder to the brand contact and mark it sent on success.
+// Returns the send result so the UI can surface a failure without marking sent.
+export async function sendReminderAction(
+  reminderId: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const user = await requireUser();
+  const reminder = await prisma.reminder.findFirst({
+    where: { id: reminderId, invoice: { userId: user.id } },
+    include: { invoice: { include: { deal: true } } },
+  });
+  if (!reminder) throw new Error("Not found");
+
+  const to = reminder.invoice.deal.contactEmail;
+  if (!to) return { ok: false, reason: "This deal has no contact email" };
+
+  const result = await sendEmail({
+    to,
+    subject: reminder.subject,
+    text: reminder.body,
+    replyTo: user.email,
+  });
+  if (!result.ok) return { ok: false, reason: result.reason };
+
+  await prisma.reminder.update({
+    where: { id: reminderId },
+    data: { status: "Sent", sentAt: new Date() },
+  });
+  revalidatePath(`/invoices/${reminder.invoiceId}`);
+  return { ok: true };
 }
 
 export async function markReminderSentAction(reminderId: string) {

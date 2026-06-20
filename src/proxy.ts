@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Lightweight guard: if there's no session cookie at all, bounce to /login
 // before rendering a protected page. Full verification happens server-side
 // in requireUser(); this just improves UX and avoids a flash of content.
-const PROTECTED = ["/dashboard", "/deals", "/invoices", "/media-kit", "/settings"];
+const PROTECTED = ["/dashboard", "/deals", "/invoices", "/insights", "/media-kit", "/settings"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -22,5 +22,5 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/deals/:path*", "/invoices/:path*", "/media-kit/:path*", "/settings/:path*"],
+  matcher: ["/dashboard/:path*", "/deals/:path*", "/invoices/:path*", "/insights/:path*", "/media-kit/:path*", "/settings/:path*"],
 };

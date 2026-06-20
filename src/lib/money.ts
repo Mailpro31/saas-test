@@ -26,6 +26,28 @@ export function formatNumber(n: number): string {
   return new Intl.NumberFormat("en-US").format(n);
 }
 
+// Sum minor-unit amounts grouped by currency (so we never add EUR to USD).
+export function sumByCurrency(
+  items: { amount: number; currency: string }[],
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const it of items) {
+    out[it.currency] = (out[it.currency] ?? 0) + it.amount;
+  }
+  return out;
+}
+
+// Render per-currency totals like "$1,200.00 · €800.00". Falls back to a zero
+// amount in `fallbackCurrency` when there's nothing to show.
+export function formatTotals(
+  totals: Record<string, number>,
+  fallbackCurrency: string,
+): string {
+  const entries = Object.entries(totals).filter(([, v]) => v !== 0);
+  if (entries.length === 0) return formatMoney(0, fallbackCurrency);
+  return entries.map(([c, v]) => formatMoney(v, c)).join(" · ");
+}
+
 // Compact follower counts: 12500 -> "12.5K", 2_400_000 -> "2.4M"
 export function formatCompact(n: number): string {
   return new Intl.NumberFormat("en-US", {
