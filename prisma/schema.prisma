@@ -1,14 +1,14 @@
 // PaidPilot — data model
-// Default provider is SQLite so the app runs with zero external services.
-// To deploy on Postgres (e.g. Neon/Vercel Postgres) change `provider` to
-// "postgresql" and point DATABASE_URL at your database. See README.md.
+// Provider is PostgreSQL (works on Vercel / Neon / any managed Postgres).
+// DATABASE_URL is read from the environment. For purely-local experimentation
+// you can point DATABASE_URL at a local Postgres or a free Neon dev branch.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
